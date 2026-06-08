@@ -10,6 +10,7 @@ type StoreContextValue = {
   recentlyViewed: string[];
   notifications: Notification[];
   unreadCount: number;
+  savedShippingAddress: ShippingAddress | null;
   hydrated: boolean;
   addToCart: (productId: string, quantity?: number) => void;
   updateQuantity: (productId: string, quantity: number) => void;
@@ -18,6 +19,7 @@ type StoreContextValue = {
   progressOrder: (orderId: string) => void;
   markViewed: (productId: string) => void;
   markNotificationsRead: () => void;
+  saveShippingAddress: (address: ShippingAddress | null) => void;
 };
 
 const StoreContext = createContext<StoreContextValue | null>(null);
@@ -25,6 +27,7 @@ const CART_KEY = "parcel-cart";
 const ORDERS_KEY = "parcel-orders";
 const RECENT_KEY = "parcel-recent";
 const NOTIFICATIONS_KEY = "parcel-notifications";
+const SAVED_ADDRESS_KEY = "parcel-saved-shipping-address";
 const TRACKING_STEP_MS = 30_000;
 const trackingStatuses: TrackingStatus[] = [
   "Order placed",
@@ -56,6 +59,8 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   const [orders, setOrders] = useState<Order[]>([]);
   const [recentlyViewed, setRecentlyViewed] = useState<string[]>([]);
   const [notifications, setNotifications] = useState<Notification[]>([]);
+  const [savedShippingAddress, setSavedShippingAddressState] =
+    useState<ShippingAddress | null>(null);
   const [hydrated, setHydrated] = useState(false);
 
   useEffect(() => {
@@ -64,6 +69,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       setOrders(readStorage(ORDERS_KEY, []));
       setRecentlyViewed(readStorage(RECENT_KEY, []));
       setNotifications(readStorage(NOTIFICATIONS_KEY, []));
+      setSavedShippingAddressState(readStorage(SAVED_ADDRESS_KEY, null));
       setHydrated(true);
     }, 0);
     return () => window.clearTimeout(timer);
@@ -84,6 +90,10 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (hydrated) writeStorage(NOTIFICATIONS_KEY, notifications);
   }, [notifications, hydrated]);
+
+  useEffect(() => {
+    if (hydrated) writeStorage(SAVED_ADDRESS_KEY, savedShippingAddress);
+  }, [savedShippingAddress, hydrated]);
 
   const addTrackingNotification = useCallback((orderId: string, step: number) => {
     const status = trackingStatuses[step];
@@ -215,6 +225,10 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   const markNotificationsRead = () =>
     setNotifications((current) => current.map((notification) => ({ ...notification, read: true })));
 
+  const saveShippingAddress = (address: ShippingAddress | null) => {
+    setSavedShippingAddressState(address);
+  };
+
   return (
     <StoreContext.Provider
       value={{
@@ -223,6 +237,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         recentlyViewed,
         notifications,
         unreadCount: notifications.filter((notification) => !notification.read).length,
+        savedShippingAddress,
         hydrated,
         addToCart,
         updateQuantity,
@@ -231,6 +246,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         progressOrder,
         markViewed,
         markNotificationsRead,
+        saveShippingAddress,
       }}
     >
       {children}
