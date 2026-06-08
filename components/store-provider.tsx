@@ -3,6 +3,7 @@
 import { createContext, ReactNode, useCallback, useContext, useEffect, useState } from "react";
 import { CartItem, Notification, Order, ShippingAddress, TrackingStatus } from "@/lib/types";
 import { calculatePricing } from "@/lib/pricing";
+import { resolveProductId } from "@/lib/products";
 
 type StoreContextValue = {
   cart: CartItem[];
@@ -54,6 +55,24 @@ function writeStorage<T>(key: string, value: T) {
   }
 }
 
+function normalizeCartItems(items: CartItem[]) {
+  const merged = new Map<string, number>();
+
+  for (const item of items) {
+    const productId = resolveProductId(item.productId);
+    merged.set(productId, (merged.get(productId) ?? 0) + item.quantity);
+  }
+
+  return Array.from(merged, ([productId, quantity]) => ({ productId, quantity }));
+}
+
+function normalizeOrders(items: Order[]) {
+  return items.map((order) => ({
+    ...order,
+    items: normalizeCartItems(order.items),
+  }));
+}
+
 export function StoreProvider({ children }: { children: ReactNode }) {
   const [cart, setCart] = useState<CartItem[]>([]);
   const [orders, setOrders] = useState<Order[]>([]);
@@ -65,9 +84,9 @@ export function StoreProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     const timer = window.setTimeout(() => {
-      setCart(readStorage(CART_KEY, []));
-      setOrders(readStorage(ORDERS_KEY, []));
-      setRecentlyViewed(readStorage(RECENT_KEY, []));
+      setCart(normalizeCartItems(readStorage(CART_KEY, [])));
+      setOrders(normalizeOrders(readStorage(ORDERS_KEY, [])));
+      setRecentlyViewed(readStorage(RECENT_KEY, []).map((productId: string) => resolveProductId(productId)));
       setNotifications(readStorage(NOTIFICATIONS_KEY, []));
       setSavedShippingAddressState(readStorage(SAVED_ADDRESS_KEY, null));
       setHydrated(true);
@@ -150,23 +169,32 @@ export function StoreProvider({ children }: { children: ReactNode }) {
 
   const addToCart = (productId: string, quantity = 1) =>
     setCart((current) => {
-      const found = current.find((item) => item.productId === productId);
+      const resolvedProductId = resolveProductId(productId);
+      const found = current.find((item) => item.productId === resolvedProductId);
       return found
         ? current.map((item) =>
-            item.productId === productId ? { ...item, quantity: item.quantity + quantity } : item,
+            item.productId === resolvedProductId
+              ? { ...item, quantity: item.quantity + quantity }
+              : item,
           )
-        : [...current, { productId, quantity }];
+        : [...current, { productId: resolvedProductId, quantity }];
     });
 
   const updateQuantity = (productId: string, quantity: number) =>
-    setCart((current) =>
-      quantity < 1
-        ? current.filter((item) => item.productId !== productId)
-        : current.map((item) => (item.productId === productId ? { ...item, quantity } : item)),
-    );
+    setCart((current) => {
+      const resolvedProductId = resolveProductId(productId);
+      return quantity < 1
+        ? current.filter((item) => item.productId !== resolvedProductId)
+        : current.map((item) =>
+            item.productId === resolvedProductId ? { ...item, quantity } : item,
+          );
+    });
 
   const removeFromCart = (productId: string) =>
-    setCart((current) => current.filter((item) => item.productId !== productId));
+    setCart((current) => {
+      const resolvedProductId = resolveProductId(productId);
+      return current.filter((item) => item.productId !== resolvedProductId);
+    });
 
   const createOrder = (shippingAddress: ShippingAddress) => {
     const createdAt = new Date();
@@ -217,7 +245,10 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   const markViewed = useCallback(
     (productId: string) =>
       setRecentlyViewed((current) =>
-        [productId, ...current.filter((id) => id !== productId)].slice(0, 8),
+        [
+          resolveProductId(productId),
+          ...current.filter((id) => resolveProductId(id) !== resolveProductId(productId)),
+        ].slice(0, 8),
       ),
     [],
   );

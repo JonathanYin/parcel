@@ -12,12 +12,12 @@ test("searches products and browses a category", async ({ page }) => {
   await expect(page.getByText("1 products found")).toBeVisible();
   await expect(page.getByRole("link", { name: "NovaBook Air 14", exact: true })).toBeVisible();
 
-  await page.getByRole("link", { name: "Gaming", exact: true }).first().click();
-  await expect(page.getByRole("heading", { name: "Gaming" })).toBeVisible();
+  await page.getByRole("link", { name: "Electronics", exact: true }).first().click();
+  await expect(page.getByRole("heading", { name: "Electronics" })).toBeVisible();
 });
 
 test("persists cart and updates quantities", async ({ page }) => {
-  await page.goto("/product/computers-1");
+  await page.goto("/product/electronics-1");
   await page.getByRole("button", { name: "Add to cart" }).click();
   await page.reload();
   await page.getByRole("link", { name: /Cart/ }).click();
@@ -27,8 +27,26 @@ test("persists cart and updates quantities", async ({ page }) => {
   await expect(page.getByRole("complementary").getByText("$1,798.00")).toBeVisible();
 });
 
+test("normalizes legacy cart items and removes them", async ({ page }) => {
+  await page.evaluate(() => {
+    localStorage.setItem(
+      "parcel-cart",
+      JSON.stringify([
+        { productId: "computers-5", quantity: 1 },
+        { productId: "electronics-5", quantity: 1 },
+      ]),
+    );
+  });
+
+  await page.goto("/cart");
+  await expect(page.getByText("Drift Wireless Mouse")).toBeVisible();
+  await expect(page.getByRole("complementary").getByText("$98.00")).toBeVisible();
+  await page.getByRole("button", { name: "Remove" }).click();
+  await expect(page.getByRole("heading", { name: "Your cart is ready for fun" })).toBeVisible();
+});
+
 test("completes checkout, shows email preview, and tracks an order", async ({ page }) => {
-  await page.goto("/product/computers-1");
+  await page.goto("/product/electronics-1");
   await page.getByRole("button", { name: "Buy now" }).click();
 
   await page.getByLabel("Full name").fill("Avery Parcel");
@@ -63,7 +81,7 @@ test("completes checkout, shows email preview, and tracks an order", async ({ pa
 });
 
 test("saves shipping info for next checkout", async ({ page }) => {
-  await page.goto("/product/computers-1");
+  await page.goto("/product/electronics-1");
   await page.getByRole("button", { name: "Buy now" }).click();
 
   await page.getByLabel("Full name").fill("Avery Parcel");
@@ -77,7 +95,7 @@ test("saves shipping info for next checkout", async ({ page }) => {
 
   await expect(page.getByRole("heading", { name: "Your order has been placed!" })).toBeVisible();
   await page.getByRole("link", { name: "Continue shopping" }).click();
-  await page.goto("/product/computers-1");
+  await page.goto("/product/electronics-1");
   await page.getByRole("button", { name: "Add to cart" }).click();
   await page.getByRole("link", { name: /Cart/ }).click();
   await page.getByRole("link", { name: "Proceed to checkout" }).click();
@@ -97,7 +115,7 @@ test("shows automatic tracking notifications for older orders", async ({ page })
           orderId: "PCL-TEST1234",
           createdAt: new Date(Date.now() - 65_000).toISOString(),
           estimatedDeliveryDate: new Date(Date.now() + 86_400_000).toISOString(),
-          items: [{ productId: "computers-1", quantity: 1 }],
+          items: [{ productId: "electronics-1", quantity: 1 }],
           total: 973.17,
           shippingAddress: {
             fullName: "Avery Parcel",

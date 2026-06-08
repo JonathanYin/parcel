@@ -31,9 +31,10 @@ export function ProductCard({ product }: { product: Product }) {
         <Link href={`/product/${product.id}`} className="text-sm font-bold leading-snug text-[#211922] hover:underline sm:text-base">
           {product.name}
         </Link>
+        <p className="mt-0.5 text-[11px] font-medium text-[#62625b]">{product.brand}</p>
         <div className="mt-1 text-lg font-black tracking-tight text-black">{formatMoney(product.price)}</div>
         <div className="mt-0.5 text-[11px] text-[#62625b]">
-          Arrives <strong>{deliveryEstimate(product.deliveryDays)}</strong>
+          {product.inventory} in stock · Arrives <strong>{deliveryEstimate(product.deliveryDays)}</strong>
         </div>
         <button
           onClick={add}

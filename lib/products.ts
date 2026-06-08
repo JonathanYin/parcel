@@ -1,7 +1,7 @@
 import { Category, Product, categories } from "./types";
 
 const catalog: Record<Category, Array<[string, number, string, string]>> = {
-  Computers: [
+  Electronics: [
     ["NovaBook Air 14", 899, "💻", "Featherlight laptop for everyday creative work."],
     ["PixelForge Mini PC", 549, "🖥️", "Tiny desktop with surprisingly big performance."],
     ["CloudView 27-inch Display", 279, "🖥️", "Crisp 4K display with an ultra-clean profile."],
@@ -10,8 +10,6 @@ const catalog: Record<Category, Array<[string, number, string, string]>> = {
     ["Studio Webcam Pro", 129, "📷", "A crisp 4K camera built for flattering calls."],
     ["Arc USB-C Hub", 59, "🔌", "Seven useful ports in one compact aluminum hub."],
     ["QuietType Keyboard", 72, "⌨️", "Low-profile keys with a soft, precise feel."],
-  ],
-  Phones: [
     ["Luma Phone Pro", 999, "📱", "A bright, fast phone with an exceptional camera."],
     ["Luma Phone Mini", 649, "📱", "Flagship speed in a perfectly pocketable size."],
     ["PocketFlip 5G", 729, "📲", "A playful folding phone that fits anywhere."],
@@ -81,6 +79,130 @@ const catalog: Record<Category, Array<[string, number, string, string]>> = {
     ["Color Outside Everything", 18, "📒", "A vibrant workbook for rebuilding creative habits."],
     ["Notes From a Quiet City", 21, "📖", "Tender short stories about unexpected connection."],
   ],
+  Beauty: [
+    ["Velvet Glow Serum", 44, "✨", "A lightweight serum that leaves skin looking bright."],
+    ["Cloud Cleanser", 28, "🫧", "Gentle foaming cleanser for everyday routines."],
+    ["Silk Hair Wrap", 22, "🎀", "Soft wrap designed to reduce morning frizz."],
+    ["Lumi Tinted Balm", 18, "💄", "A sheer color balm with a glossy finish."],
+    ["Rose Mist Toner", 26, "🌹", "Refreshing facial mist with a soothing finish."],
+    ["Soft Blend Brush Set", 34, "🖌️", "Five essentials for effortless application."],
+    ["Glow Sheet Mask Set", 21, "🧖", "A hydrating mask bundle for easy self-care."],
+    ["Daily Brow Gel", 17, "🪄", "A clear styling gel that stays put all day."],
+  ],
+  Outdoors: [
+    ["Trail Bottle", 32, "🚰", "A durable bottle that keeps pace on every outing."],
+    ["Packable Camp Blanket", 48, "🏕️", "Warm, compact, and ready for the trunk."],
+    ["Lantern Night Light", 39, "🏮", "A portable lantern for campsites and patios."],
+    ["Weekend Daypack", 68, "🎒", "A versatile pack for hikes, travel, and errands."],
+    ["Sunshade Cap", 24, "🧢", "A breathable cap with a wide brim and easy fit."],
+    ["All-Weather Mat", 29, "🟩", "A rugged mat for muddy boots and gear staging."],
+    ["Trail Towel Kit", 21, "🧺", "Quick-dry towels for swims, hikes, and road trips."],
+    ["Pocket Compass", 19, "🧭", "A classic navigation tool with a satisfying click."],
+  ],
+};
+
+const brandLibrary: Record<Category, string[]> = {
+  Electronics: [
+    "Northline",
+    "Halo",
+    "PixelUnion",
+    "Orbit",
+    "Drift",
+    "Studio",
+    "Arc",
+    "QuietType",
+    "Luma",
+    "Pocketline",
+    "FlipWave",
+    "ClearCall",
+    "SnapShot",
+    "PowerPocket",
+    "Magnetic",
+    "LensKit",
+  ],
+  Food: ["Little Batch", "Cloud Kitchen", "Slow Stir", "Tiny Table", "Gold Heat", "Sunday Street", "Bright Cup", "Crunch Club"],
+  Accessories: ["CarryCo", "Moonrise", "Loop", "Everyday", "Soft Landing", "Cloud Carry", "Tiny Travel", "Daily Gold"],
+  Clothing: ["Sunday Soft", "Everywhere", "Easy Day", "Sunset Runner", "Weekend", "Soft Knit", "Linen Lane", "Morning Walk"],
+  Home: ["Glow Home", "Dreamy", "Sunday Studio", "Happy Plant", "Calm Room", "Ripple", "Soft Step", "Little Things"],
+  Gaming: ["QuestBox", "Neon Realm", "Pixel Party", "Level Up", "Retro Pocket", "Cozy Quest", "Stream Light", "Arcade"],
+  Books: ["Reading Room", "Make Small", "Atlas", "Tomorrow", "Houseplants", "Small Joys", "Color Outside", "Quiet City"],
+  Beauty: ["Velvet", "Cloud", "Silk", "Lumi", "Rose", "Soft Blend", "Glow Set", "Daily Brow"],
+  Outdoors: ["Trail", "Packable", "Lantern", "Weekend", "Sunshade", "All-Weather", "Trail Towel", "Pocket Compass"],
+};
+
+const highlightLibrary: Record<Category, string[]> = {
+  Electronics: [
+    "Fast setup",
+    "Works across devices",
+    "Built for daily use",
+    "Compact and portable",
+    "Premium finish",
+    "Reliable performance",
+  ],
+  Food: [
+    "Small-batch flavor",
+    "Ships fresh",
+    "Great for gifting",
+    "Easy to share",
+    "Comfort food energy",
+    "Ready in minutes",
+  ],
+  Accessories: [
+    "Travel friendly",
+    "Everyday carry",
+    "Easy to pair",
+    "Soft-touch finish",
+    "Lightweight build",
+    "Fits into any bag",
+  ],
+  Clothing: [
+    "Easy layering",
+    "Soft-touch fabric",
+    "Relaxed fit",
+    "Wear all day",
+    "Made to move",
+    "Weekend ready",
+  ],
+  Home: [
+    "Calm room vibe",
+    "Simple to style",
+    "Warm ambient feel",
+    "Easy to clean",
+    "Shelf friendly",
+    "Low-maintenance",
+  ],
+  Gaming: [
+    "Instant response",
+    "Desk setup staple",
+    "Comfortable sessions",
+    "Party-night ready",
+    "Quiet buttons",
+    "Made for late nights",
+  ],
+  Books: [
+    "Great gift pick",
+    "Lively page turns",
+    "Shelf worthy",
+    "Thoughtful read",
+    "Easy weekend pacing",
+    "Conversation starter",
+  ],
+  Beauty: [
+    "Travel friendly",
+    "Soft finish",
+    "Daily routine staple",
+    "Gentle on skin",
+    "Brightening feel",
+    "Spa-at-home energy",
+  ],
+  Outdoors: [
+    "Trail friendly",
+    "Packable design",
+    "Weather-ready",
+    "Weekend proof",
+    "Lightweight carry",
+    "Camp ready",
+  ],
 };
 
 const gradients = [
@@ -91,28 +213,98 @@ const gradients = [
   "from-violet-200 via-purple-100 to-fuchsia-200",
 ];
 
+const categoryGlyphs: Record<Category, string> = {
+  Electronics: "⚡",
+  Food: "🍿",
+  Accessories: "🎒",
+  Clothing: "👕",
+  Home: "🏠",
+  Gaming: "🎮",
+  Books: "📚",
+  Beauty: "✨",
+  Outdoors: "🏕️",
+};
+
+const productAliasMap: Record<string, string> = {
+  "computers-1": "electronics-1",
+  "computers-2": "electronics-2",
+  "computers-3": "electronics-3",
+  "computers-4": "electronics-4",
+  "computers-5": "electronics-5",
+  "computers-6": "electronics-6",
+  "computers-7": "electronics-7",
+  "computers-8": "electronics-8",
+  "phones-1": "electronics-9",
+  "phones-2": "electronics-10",
+  "phones-3": "electronics-11",
+  "phones-4": "electronics-12",
+  "phones-5": "electronics-13",
+  "phones-6": "electronics-14",
+  "phones-7": "electronics-15",
+  "phones-8": "electronics-16",
+};
+
+export const categoryAliasMap: Record<string, Category> = {
+  computers: "Electronics",
+  phones: "Electronics",
+};
+
+const categoryLookup = new Map(categories.map((category) => [category.toLowerCase(), category] as const));
+
+function resolveProductId(id: string) {
+  return productAliasMap[id] ?? id;
+}
+
+export function resolveCategoryName(category: string) {
+  const normalized = category.toLowerCase();
+  return categoryAliasMap[normalized] ?? categoryLookup.get(normalized) ?? category;
+}
+
+function buildHighlights(category: Category, index: number) {
+  const source = highlightLibrary[category];
+  return [source[index % source.length], source[(index + 1) % source.length], source[(index + 2) % source.length]];
+}
+
+function buildImageSrc(category: Category, index: number) {
+  if (category === "Electronics") return `/products/items/electronics-${index + 1}.webp`;
+  return `/products/items/${category.toLowerCase()}-${index + 1}.webp`;
+}
+
 export const products: Product[] = categories.flatMap((category, categoryIndex) =>
-  catalog[category].map(([name, price, emoji, description], index) => ({
-    id: `${category.toLowerCase()}-${index + 1}`,
-    name,
-    category,
-    price,
-    emoji,
-    description,
-    gradient: gradients[(categoryIndex + index) % gradients.length],
-    imageSrc: `/products/items/${category.toLowerCase()}-${index + 1}.webp`,
-    rating: Number((4.2 + ((categoryIndex * 3 + index) % 8) / 10).toFixed(1)),
-    reviewCount: 128 + ((categoryIndex + 4) * (index + 7) * 37) % 8400,
-    deliveryDays: 1 + ((categoryIndex + index) % 4),
-    badge: index === 0 ? "Trending" : index === 3 ? "Great value" : undefined,
-  })),
+  catalog[category].map(([name, price, emoji, description], index) => {
+    const brand = brandLibrary[category][index % brandLibrary[category].length];
+    const inventory = 2 + ((categoryIndex * 11 + index * 7) % 18);
+    return {
+      id: `${category.toLowerCase()}-${index + 1}`,
+      name,
+      category,
+      brand,
+      price,
+      emoji,
+      description,
+      highlights: buildHighlights(category, index),
+      gradient: gradients[(categoryIndex + index) % gradients.length],
+      imageSrc: buildImageSrc(category, index),
+      rating: Number((4.2 + ((categoryIndex * 3 + index) % 8) / 10).toFixed(1)),
+      reviewCount: 128 + ((categoryIndex + 4) * (index + 7) * 37) % 8400,
+      inventory,
+      deliveryDays: 1 + ((categoryIndex + index) % 4),
+      badge: index === 0 ? "Trending" : index === 3 ? "Great value" : undefined,
+    };
+  }),
 );
 
-export const getProduct = (id: string) => products.find((product) => product.id === id);
-export const getCategoryProducts = (category: string) =>
-  products.filter((product) => product.category.toLowerCase() === category.toLowerCase());
+const productLookup = new Map(products.map((product) => [product.id, product]));
+
+export const getProduct = (id: string) => productLookup.get(resolveProductId(id));
+export const getCategoryProducts = (category: string) => {
+  const resolved = resolveCategoryName(category);
+  return products.filter((product) => product.category === resolved);
+};
 
 export const formatMoney = (amount: number) =>
   new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(amount);
 
 export const deliveryEstimate = (days: number) => `in ${days} ${days === 1 ? "day" : "days"}`;
+
+export { categoryGlyphs, resolveProductId };

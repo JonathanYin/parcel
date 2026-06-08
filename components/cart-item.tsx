@@ -15,14 +15,14 @@ export function CartItem({ item }: { item: CartItemType }) {
       <Link href={`/product/${product.id}`} className="group"><ProductVisual product={product} /></Link>
       <div>
         <Link href={`/product/${product.id}`} className="text-lg font-black hover:text-blue-700">{product.name}</Link>
-        <p className="mt-1 text-xs font-bold text-emerald-700">In stock · Arrives soon</p>
+        <p className="mt-1 text-xs font-bold text-emerald-700">{product.brand} · {product.inventory} in stock · Arrives soon</p>
         <div className="mt-3 flex flex-wrap items-center gap-3">
           <div className="flex items-center rounded-full border border-slate-300">
-            <button onClick={() => updateQuantity(product.id, item.quantity - 1)} className="px-3 py-1.5 font-bold">−</button>
+            <button onClick={() => updateQuantity(item.productId, item.quantity - 1)} className="px-3 py-1.5 font-bold">−</button>
             <span className="min-w-6 text-center text-sm font-bold">{item.quantity}</span>
-            <button onClick={() => updateQuantity(product.id, item.quantity + 1)} className="px-3 py-1.5 font-bold">+</button>
+            <button onClick={() => updateQuantity(item.productId, item.quantity + 1)} className="px-3 py-1.5 font-bold">+</button>
           </div>
-          <button onClick={() => removeFromCart(product.id)} className="text-xs font-bold text-blue-700 hover:underline">Remove</button>
+          <button onClick={() => removeFromCart(item.productId)} className="text-xs font-bold text-blue-700 hover:underline">Remove</button>
         </div>
         <p className="mt-3 font-black">{formatMoney(product.price * item.quantity)}</p>
       </div>

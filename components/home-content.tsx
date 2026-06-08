@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { products } from "@/lib/products";
+import { categoryGlyphs, products } from "@/lib/products";
 import { categories } from "@/lib/types";
 import { ProductGrid } from "./product-grid";
 import { useStore } from "./store-provider";
@@ -10,11 +10,13 @@ export function HomeContent({ query }: { query: string }) {
   const { recentlyViewed } = useStore();
   const normalized = query.toLowerCase();
   const results = products.filter((product) =>
-    `${product.name} ${product.category} ${product.description}`.toLowerCase().includes(normalized),
+    `${product.name} ${product.brand} ${product.category} ${product.description} ${product.highlights.join(" ")} ${product.badge ?? ""}`
+      .toLowerCase()
+      .includes(normalized),
   );
   const recentProducts = recentlyViewed
     .map((id) => products.find((product) => product.id === id))
-    .filter((product) => product !== undefined);
+    .filter((product): product is (typeof products)[number] => product !== undefined);
 
   if (query) {
     return (
@@ -50,7 +52,7 @@ export function HomeContent({ query }: { query: string }) {
         <div className="no-scrollbar flex gap-2 overflow-x-auto">
           {categories.map((category, index) => (
             <Link key={category} href={`/category/${category.toLowerCase()}`} className="flex min-w-32 items-center gap-2 rounded-2xl bg-[#f6f6f3] p-3 transition hover:bg-[#e5e5e0]">
-              <div className="text-2xl">{["💻","📱","🍿","🎧","👕","🏠","🎮","📚"][index]}</div>
+              <div className="text-2xl">{categoryGlyphs[category] ?? ["💻","🍿","🎒","👕","🏠","🎮","📚","✨","🏕️"][index]}</div>
               <div className="text-sm font-bold">{category}</div>
             </Link>
           ))}
@@ -86,5 +88,5 @@ function Promo({ icon, title, copy }: { icon: string; title: string; copy: strin
 }
 
 function EmptySearch() {
-  return <div className="rounded-3xl bg-[#f6f6f3] p-12 text-center"><div className="text-6xl">🔎</div><h2 className="mt-4 text-xl font-black">No products found</h2><p className="mt-1 text-[#62625b]">Try “phone”, “snack”, or “cozy”.</p></div>;
+  return <div className="rounded-3xl bg-[#f6f6f3] p-12 text-center"><div className="text-6xl">🔎</div><h2 className="mt-4 text-xl font-black">No products found</h2><p className="mt-1 text-[#62625b]">Try “laptop”, “serum”, “snack”, or “camp”.</p></div>;
 }

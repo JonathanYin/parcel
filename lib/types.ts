@@ -1,12 +1,13 @@
 export const categories = [
-  "Computers",
-  "Phones",
+  "Electronics",
   "Food",
   "Accessories",
   "Clothing",
   "Home",
   "Gaming",
   "Books",
+  "Beauty",
+  "Outdoors",
 ] as const;
 
 export type Category = (typeof categories)[number];
@@ -15,11 +16,14 @@ export type Product = {
   id: string;
   name: string;
   category: Category;
+  brand: string;
   price: number;
   rating: number;
   reviewCount: number;
+  inventory: number;
   deliveryDays: number;
   description: string;
+  highlights: string[];
   emoji: string;
   gradient: string;
   imageSrc: string;

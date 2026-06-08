@@ -81,8 +81,9 @@ Preserve responsive behavior and avoid introducing decorative complexity that co
 
 ## Product Rules
 
-- Keep at least 64 products across the eight existing categories.
-- Search should match product names, categories, and descriptions.
+- Keep at least 80 products across the nine current categories.
+- Treat `computers` and `phones` as legacy aliases that resolve to `Electronics`.
+- Search should match product names, brands, categories, descriptions, and highlights.
 - Cart, orders, tracking progress, and recently viewed items must survive refreshes.
 - Checkout must not collect or process real payment details.
 - The confirmation screen shows an email preview but sends no email.
