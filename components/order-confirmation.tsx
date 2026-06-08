@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useStore } from "./store-provider";
-import { formatMoney, getProduct } from "@/lib/products";
+import { formatMoney } from "@/lib/products";
 
 export function OrderConfirmation({ orderId }: { orderId: string }) {
   const { orders, hydrated } = useStore();
@@ -19,7 +19,7 @@ export function OrderConfirmation({ orderId }: { orderId: string }) {
         <div className="mt-8 grid gap-3 sm:grid-cols-2"><Link href={`/tracking/${order.orderId}`} className="rounded-full bg-amber-400 px-5 py-3 font-black">Track package</Link><Link href="/" className="rounded-full border border-slate-300 px-5 py-3 font-black">Continue shopping</Link></div>
         </div>
       </section>
-      <section className="relative mt-6 overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm"><div className="border-b border-slate-200 bg-slate-50 px-6 py-4 text-left"><p className="text-xs font-black uppercase tracking-widest text-slate-400">Email confirmation preview</p><p className="mt-1 font-bold">To: {order.shippingAddress.email}</p><p className="text-sm">Subject: Your Parcel order is confirmed</p></div><div className="p-6"><p className="text-2xl font-black">Thanks, {order.shippingAddress.fullName.split(" ")[0]}!</p><p className="mt-2 text-slate-600">We received your order for {order.items.reduce((sum, item) => sum + item.quantity, 0)} delightful item(s).</p><div className="my-5 space-y-2 border-y border-slate-200 py-4">{order.items.map((item) => { const product = getProduct(item.productId); return product ? <div className="flex justify-between text-sm" key={item.productId}><span>{product.emoji} {item.quantity}× {product.name}</span><strong>{formatMoney(product.price * item.quantity)}</strong></div> : null; })}</div><p className="text-right text-xl font-black">Total: {formatMoney(order.total)}</p><p className="mt-5 rounded-xl bg-blue-50 p-3 text-xs font-bold text-blue-800">Email preview only. No email was sent.</p></div></section>
+      <section className="relative mt-6 overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm"><div className="border-b border-slate-200 bg-slate-50 px-6 py-4 text-left"><p className="text-xs font-black uppercase tracking-widest text-slate-400">Email confirmation preview</p><p className="mt-1 font-bold">To: {order.shippingAddress.email}</p><p className="text-sm">Subject: Your Parcel order is confirmed</p></div><div className="p-6"><p className="text-2xl font-black">Thanks, {order.shippingAddress.fullName.split(" ")[0]}!</p><p className="mt-2 text-slate-600">We received your order for {order.items.reduce((sum, item) => sum + item.quantity, 0)} delightful item(s).</p><div className="my-5 space-y-2 border-y border-slate-200 py-4">{order.items.map((item) => <div className="flex justify-between text-sm" key={item.productId}><span>{item.product.emoji} {item.quantity}× {item.product.name}</span><strong>{formatMoney(item.product.price * item.quantity)}</strong></div>)}</div><p className="text-right text-xl font-black">Total: {formatMoney(order.total)}</p><p className="mt-5 rounded-xl bg-blue-50 p-3 text-xs font-bold text-blue-800">Email preview only. No email was sent.</p></div></section>
     </main>
   );
 }

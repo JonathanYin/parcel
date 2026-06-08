@@ -1,9 +1,10 @@
 "use client";
 
-import { createContext, ReactNode, useCallback, useContext, useEffect, useState } from "react";
-import { CartItem, Notification, Order, ShippingAddress, TrackingStatus } from "@/lib/types";
+import { createContext, ReactNode, useCallback, useContext, useEffect, useRef, useState } from "react";
+import { CartItem, categories, Notification, Order, OrderItem, ShippingAddress, TrackingStatus } from "@/lib/types";
 import { calculatePricing } from "@/lib/pricing";
-import { resolveProductId } from "@/lib/products";
+import { getProduct, resolveProductId } from "@/lib/products";
+import { isRecord, readVersionedStorage, writeVersionedStorage } from "@/lib/storage";
 
 type StoreContextValue = {
   cart: CartItem[];
@@ -38,39 +39,160 @@ const trackingStatuses: TrackingStatus[] = [
   "Delivered",
 ];
 
-function readStorage<T>(key: string, fallback: T): T {
-  try {
-    const value = localStorage.getItem(key);
-    return value ? JSON.parse(value) : fallback;
-  } catch {
-    return fallback;
-  }
-}
-
-function writeStorage<T>(key: string, value: T) {
-  try {
-    localStorage.setItem(key, JSON.stringify(value));
-  } catch {
-    // Keep the in-memory experience working when storage is unavailable.
-  }
-}
-
-function normalizeCartItems(items: CartItem[]) {
+function normalizeCartItems(value: unknown) {
   const merged = new Map<string, number>();
 
-  for (const item of items) {
+  if (!Array.isArray(value)) return [];
+  for (const item of value) {
+    if (!isRecord(item) || typeof item.productId !== "string" || typeof item.quantity !== "number") {
+      continue;
+    }
     const productId = resolveProductId(item.productId);
-    merged.set(productId, (merged.get(productId) ?? 0) + item.quantity);
+    const quantity = Math.floor(item.quantity);
+    if (!Number.isFinite(quantity)) continue;
+    if (!getProduct(productId) || quantity < 1) continue;
+    merged.set(productId, (merged.get(productId) ?? 0) + quantity);
   }
 
   return Array.from(merged, ([productId, quantity]) => ({ productId, quantity }));
 }
 
-function normalizeOrders(items: Order[]) {
-  return items.map((order) => ({
-    ...order,
-    items: normalizeCartItems(order.items),
-  }));
+function snapshotOrderItem(item: CartItem): OrderItem | null {
+  const product = getProduct(item.productId);
+  if (!product) return null;
+  return {
+    ...item,
+    product: {
+      id: product.id,
+      name: product.name,
+      category: product.category,
+      brand: product.brand,
+      price: product.price,
+      emoji: product.emoji,
+      imageSrc: product.imageSrc,
+    },
+  };
+}
+
+function normalizeOrderItems(value: unknown): OrderItem[] {
+  if (!Array.isArray(value)) return [];
+  const merged = new Map<string, OrderItem>();
+
+  for (const candidate of value) {
+    if (
+      !isRecord(candidate) ||
+      typeof candidate.productId !== "string" ||
+      typeof candidate.quantity !== "number"
+    ) {
+      continue;
+    }
+
+    const productId = resolveProductId(candidate.productId);
+    const quantity = Math.floor(candidate.quantity);
+    if (!Number.isFinite(quantity) || quantity < 1) continue;
+
+    let normalizedItem: OrderItem | null = null;
+    if (isRecord(candidate.product)) {
+      const product = candidate.product;
+      if (
+        typeof product.id === "string" &&
+        typeof product.name === "string" &&
+        categories.includes(product.category as (typeof categories)[number]) &&
+        typeof product.brand === "string" &&
+        typeof product.price === "number" &&
+        Number.isFinite(product.price) &&
+        product.price >= 0 &&
+        typeof product.emoji === "string" &&
+        typeof product.imageSrc === "string"
+      ) {
+        normalizedItem = {
+          productId,
+          quantity,
+          product: { ...product, id: productId } as OrderItem["product"],
+        };
+      }
+    }
+
+    normalizedItem ??= snapshotOrderItem({ productId, quantity });
+    if (!normalizedItem) continue;
+
+    const existing = merged.get(productId);
+    merged.set(
+      productId,
+      existing ? { ...existing, quantity: existing.quantity + normalizedItem.quantity } : normalizedItem,
+    );
+  }
+
+  return Array.from(merged.values());
+}
+
+function normalizeOrders(value: unknown): Order[] {
+  if (!Array.isArray(value)) return [];
+  return value.flatMap((candidate) => {
+    if (
+      !isRecord(candidate) ||
+      typeof candidate.orderId !== "string" ||
+      typeof candidate.createdAt !== "string" ||
+      !isValidDate(candidate.createdAt) ||
+      typeof candidate.estimatedDeliveryDate !== "string" ||
+      !isValidDate(candidate.estimatedDeliveryDate) ||
+      typeof candidate.total !== "number" ||
+      !Number.isFinite(candidate.total) ||
+      candidate.total < 0 ||
+      !normalizeShippingAddress(candidate.shippingAddress) ||
+      typeof candidate.trackingStep !== "number" ||
+      !Number.isInteger(candidate.trackingStep) ||
+      candidate.trackingStep < 0 ||
+      candidate.trackingStep >= trackingStatuses.length ||
+      typeof candidate.trackingNumber !== "string" ||
+      typeof candidate.carrier !== "string"
+    ) {
+      return [];
+    }
+
+    const items = normalizeOrderItems(candidate.items);
+    if (!items.length) return [];
+
+    return [{
+      ...candidate,
+      shippingAddress: normalizeShippingAddress(candidate.shippingAddress),
+      trackingStatus: trackingStatuses[candidate.trackingStep],
+      items,
+    } as Order];
+  });
+}
+
+function normalizeStringList(value: unknown) {
+  if (!Array.isArray(value)) return [];
+  return value
+    .filter((item): item is string => typeof item === "string")
+    .map(resolveProductId)
+    .filter((id, index, items) => Boolean(getProduct(id)) && items.indexOf(id) === index)
+    .slice(0, 8);
+}
+
+function normalizeNotifications(value: unknown): Notification[] {
+  if (!Array.isArray(value)) return [];
+  return value.filter((item): item is Notification =>
+    isRecord(item) &&
+    typeof item.id === "string" &&
+    typeof item.title === "string" &&
+    typeof item.message === "string" &&
+    typeof item.createdAt === "string" &&
+    isValidDate(item.createdAt) &&
+    typeof item.read === "boolean",
+  );
+}
+
+function normalizeShippingAddress(value: unknown): ShippingAddress | null {
+  if (!isRecord(value)) return null;
+  const keys: (keyof ShippingAddress)[] = ["fullName", "email", "street", "city", "state", "zip"];
+  if (!keys.every((key) => typeof value[key] === "string")) return null;
+  return value as ShippingAddress;
+}
+
+function isValidDate(value: string) {
+  return Number.isFinite(Date.parse(value));
 }
 
 export function StoreProvider({ children }: { children: ReactNode }) {
@@ -81,37 +203,48 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   const [savedShippingAddress, setSavedShippingAddressState] =
     useState<ShippingAddress | null>(null);
   const [hydrated, setHydrated] = useState(false);
+  const readOnlyStorageKeys = useRef(new Set<string>());
 
   useEffect(() => {
     const timer = window.setTimeout(() => {
-      setCart(normalizeCartItems(readStorage(CART_KEY, [])));
-      setOrders(normalizeOrders(readStorage(ORDERS_KEY, [])));
-      setRecentlyViewed(readStorage(RECENT_KEY, []).map((productId: string) => resolveProductId(productId)));
-      setNotifications(readStorage(NOTIFICATIONS_KEY, []));
-      setSavedShippingAddressState(readStorage(SAVED_ADDRESS_KEY, null));
+      const cartResult = readVersionedStorage(CART_KEY, [], normalizeCartItems);
+      const ordersResult = readVersionedStorage(ORDERS_KEY, [], normalizeOrders);
+      const recentResult = readVersionedStorage(RECENT_KEY, [], normalizeStringList);
+      const notificationsResult = readVersionedStorage(NOTIFICATIONS_KEY, [], normalizeNotifications);
+      const addressResult = readVersionedStorage(SAVED_ADDRESS_KEY, null, normalizeShippingAddress);
+      if (!cartResult.writable) readOnlyStorageKeys.current.add(CART_KEY);
+      if (!ordersResult.writable) readOnlyStorageKeys.current.add(ORDERS_KEY);
+      if (!recentResult.writable) readOnlyStorageKeys.current.add(RECENT_KEY);
+      if (!notificationsResult.writable) readOnlyStorageKeys.current.add(NOTIFICATIONS_KEY);
+      if (!addressResult.writable) readOnlyStorageKeys.current.add(SAVED_ADDRESS_KEY);
+      setCart(cartResult.data);
+      setOrders(ordersResult.data);
+      setRecentlyViewed(recentResult.data);
+      setNotifications(notificationsResult.data);
+      setSavedShippingAddressState(addressResult.data);
       setHydrated(true);
     }, 0);
     return () => window.clearTimeout(timer);
   }, []);
 
   useEffect(() => {
-    if (hydrated) writeStorage(CART_KEY, cart);
+    if (hydrated && !readOnlyStorageKeys.current.has(CART_KEY)) writeVersionedStorage(CART_KEY, cart);
   }, [cart, hydrated]);
 
   useEffect(() => {
-    if (hydrated) writeStorage(ORDERS_KEY, orders);
+    if (hydrated && !readOnlyStorageKeys.current.has(ORDERS_KEY)) writeVersionedStorage(ORDERS_KEY, orders);
   }, [orders, hydrated]);
 
   useEffect(() => {
-    if (hydrated) writeStorage(RECENT_KEY, recentlyViewed);
+    if (hydrated && !readOnlyStorageKeys.current.has(RECENT_KEY)) writeVersionedStorage(RECENT_KEY, recentlyViewed);
   }, [recentlyViewed, hydrated]);
 
   useEffect(() => {
-    if (hydrated) writeStorage(NOTIFICATIONS_KEY, notifications);
+    if (hydrated && !readOnlyStorageKeys.current.has(NOTIFICATIONS_KEY)) writeVersionedStorage(NOTIFICATIONS_KEY, notifications);
   }, [notifications, hydrated]);
 
   useEffect(() => {
-    if (hydrated) writeStorage(SAVED_ADDRESS_KEY, savedShippingAddress);
+    if (hydrated && !readOnlyStorageKeys.current.has(SAVED_ADDRESS_KEY)) writeVersionedStorage(SAVED_ADDRESS_KEY, savedShippingAddress);
   }, [savedShippingAddress, hydrated]);
 
   const addTrackingNotification = useCallback((orderId: string, step: number) => {
@@ -204,7 +337,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       orderId: `PCL-${crypto.randomUUID().slice(0, 8).toUpperCase()}`,
       createdAt: createdAt.toISOString(),
       estimatedDeliveryDate: delivery.toISOString(),
-      items: cart.map((item) => ({ ...item })),
+      items: cart.map(snapshotOrderItem).filter((item): item is OrderItem => item !== null),
       total: calculatePricing(cart).total,
       shippingAddress,
       trackingStatus: "Order placed",

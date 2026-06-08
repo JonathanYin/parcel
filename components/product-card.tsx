@@ -7,7 +7,7 @@ import { ProductVisual } from "./product-visual";
 import { useStore } from "./store-provider";
 import { useState } from "react";
 
-export function ProductCard({ product }: { product: Product }) {
+export function ProductCard({ product, eager = false }: { product: Product; eager?: boolean }) {
   const { addToCart, hydrated } = useStore();
   const [added, setAdded] = useState(false);
 
@@ -20,7 +20,7 @@ export function ProductCard({ product }: { product: Product }) {
   return (
     <article className="group relative overflow-hidden rounded-2xl bg-white">
       <Link href={`/product/${product.id}`} className="relative block">
-        <ProductVisual product={product} />
+        <ProductVisual product={product} eager={eager} />
         <div className="absolute inset-0 rounded-2xl bg-black/0 transition group-hover:bg-black/10" />
       </Link>
       <div className="px-1 pb-2 pt-2">

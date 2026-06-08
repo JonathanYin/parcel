@@ -16,6 +16,23 @@ test("searches products and browses a category", async ({ page }) => {
   await expect(page.getByRole("heading", { name: "Electronics" })).toBeVisible();
 });
 
+test("filters and sorts category products through the URL", async ({ page }) => {
+  await page.goto("/category/electronics");
+  await page.locator('select[name="maxPrice"]').selectOption("100");
+  await page.locator('select[name="sort"]').selectOption("price-desc");
+  await page.getByRole("button", { name: "Apply" }).click();
+
+  await expect(page).toHaveURL(/maxPrice=100/);
+  await expect(page).toHaveURL(/sort=price-desc/);
+  await expect(page.getByText("7 products found")).toBeVisible();
+  await expect(page.locator("article").first().getByRole("link", { name: "Orbit Mechanical Keyboard", exact: true })).toBeVisible();
+  await expect(page.getByRole("link", { name: "NovaBook Air 14", exact: true })).toHaveCount(0);
+
+  await page.reload();
+  await expect(page.locator('select[name="maxPrice"]')).toHaveValue("100");
+  await expect(page.locator('select[name="sort"]')).toHaveValue("price-desc");
+});
+
 test("persists cart and updates quantities", async ({ page }) => {
   await page.goto("/product/electronics-1");
   await page.getByRole("button", { name: "Add to cart" }).click();
@@ -107,7 +124,7 @@ test("saves shipping info for next checkout", async ({ page }) => {
 });
 
 test("shows automatic tracking notifications for older orders", async ({ page }) => {
-  await page.evaluate(() => {
+  await page.addInitScript(() => {
     localStorage.setItem(
       "parcel-orders",
       JSON.stringify([
@@ -137,4 +154,103 @@ test("shows automatic tracking notifications for older orders", async ({ page })
 
   await page.getByLabel("Notifications").click();
   await expect(page.getByText("Shipped", { exact: true })).toBeVisible();
+});
+
+test("migrates legacy storage into versioned order snapshots", async ({ page }) => {
+  await page.addInitScript(() => {
+    localStorage.setItem(
+      "parcel-orders",
+      JSON.stringify([
+        {
+          orderId: "PCL-LEGACY",
+          createdAt: new Date().toISOString(),
+          estimatedDeliveryDate: new Date(Date.now() + 86_400_000).toISOString(),
+          items: [
+            { productId: "computers-5", quantity: 1 },
+            { productId: "electronics-5", quantity: 1 },
+          ],
+          total: 98,
+          shippingAddress: {
+            fullName: "Avery Parcel",
+            email: "avery@example.com",
+            street: "123 Delivery Lane",
+            city: "Portland",
+            state: "OR",
+            zip: "97205",
+          },
+          trackingStatus: "Order placed",
+          trackingStep: 0,
+          trackingNumber: "PKGLEGACY123",
+          carrier: "Parcel Express",
+        },
+      ]),
+    );
+  });
+  await page.goto("/orders");
+
+  await expect(page.getByText("PCL-LEGACY")).toBeVisible();
+  const storedOrder = await page.evaluate(() => JSON.parse(localStorage.getItem("parcel-orders") ?? "{}"));
+  expect(storedOrder.version).toBe(1);
+  expect(storedOrder.data[0].items[0].productId).toBe("electronics-5");
+  expect(storedOrder.data[0].items[0].quantity).toBe(2);
+  expect(storedOrder.data[0].items).toHaveLength(1);
+  expect(storedOrder.data[0].items[0].product.name).toBe("Drift Wireless Mouse");
+});
+
+test("preserves unsupported future storage versions", async ({ page }) => {
+  await page.addInitScript(() => {
+    localStorage.setItem(
+      "parcel-cart",
+      JSON.stringify({
+        version: 99,
+        data: [{ productId: "electronics-1", quantity: 3 }],
+        futureField: "keep-me",
+      }),
+    );
+  });
+  await page.reload();
+
+  await expect(page.getByRole("link", { name: /Cart/ })).not.toContainText("3");
+  const storedCart = await page.evaluate(() => localStorage.getItem("parcel-cart"));
+  expect(storedCart).toBe(
+    JSON.stringify({
+      version: 99,
+      data: [{ productId: "electronics-1", quantity: 3 }],
+      futureField: "keep-me",
+    }),
+  );
+});
+
+test("rejects malformed tracking orders without crashing", async ({ page }) => {
+  await page.addInitScript(() => {
+    localStorage.setItem(
+      "parcel-orders",
+      JSON.stringify([
+        {
+          orderId: "PCL-BROKEN",
+          createdAt: "not-a-date",
+          estimatedDeliveryDate: "also-not-a-date",
+          items: [{ productId: "electronics-1", quantity: 1 }],
+          total: 973.17,
+          shippingAddress: {
+            fullName: "Avery Parcel",
+            email: "avery@example.com",
+            street: "123 Delivery Lane",
+            city: "Portland",
+            state: "OR",
+            zip: "97205",
+          },
+          trackingStatus: "Somewhere",
+          trackingStep: 99,
+          trackingNumber: "PKGBROKEN123",
+          carrier: "Parcel Express",
+        },
+      ]),
+    );
+  });
+  await page.goto("/orders");
+
+  await expect(page.getByRole("heading", { name: "No orders yet" })).toBeVisible();
+  const storedOrders = await page.evaluate(() => JSON.parse(localStorage.getItem("parcel-orders") ?? "{}"));
+  expect(storedOrders.data).toEqual([]);
 });

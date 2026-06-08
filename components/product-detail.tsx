@@ -29,7 +29,7 @@ export function ProductDetail({ product }: { product: Product }) {
   return (
     <main className="mx-auto max-w-7xl px-4 py-8 sm:py-12">
       <div className="grid gap-8 rounded-[2rem] bg-white p-5 shadow-sm md:grid-cols-2 md:p-8">
-        <ProductVisual product={product} large />
+        <ProductVisual product={product} large eager />
         <div className="flex flex-col justify-center">
           <div className="flex flex-wrap items-center gap-2">
             <p className="text-xs font-black uppercase tracking-[0.2em] text-blue-600">{product.category}</p>

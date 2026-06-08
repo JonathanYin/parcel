@@ -4,9 +4,11 @@ import { Product } from "@/lib/types";
 export function ProductVisual({
   product,
   large = false,
+  eager = false,
 }: {
   product: Product;
   large?: boolean;
+  eager?: boolean;
 }) {
   const shape = Number(product.id.at(-1)) % 3;
   const aspect = shape === 0 ? "aspect-square" : shape === 1 ? "aspect-[3/4]" : "aspect-[4/5]";
@@ -20,6 +22,7 @@ export function ProductVisual({
         src={product.imageSrc}
         alt={product.name}
         fill
+        loading={eager ? "eager" : "lazy"}
         sizes={large ? "(min-width: 768px) 50vw, 100vw" : "(min-width: 1280px) 20vw, (min-width: 768px) 25vw, 50vw"}
         className="object-cover transition-transform duration-300 group-hover:scale-105"
       />

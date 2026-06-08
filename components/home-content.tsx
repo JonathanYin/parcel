@@ -3,17 +3,14 @@
 import Link from "next/link";
 import { categoryGlyphs, products } from "@/lib/products";
 import { categories } from "@/lib/types";
+import { CatalogFilters, filterAndSortProducts } from "@/lib/catalog";
+import { CatalogControls } from "./catalog-controls";
 import { ProductGrid } from "./product-grid";
 import { useStore } from "./store-provider";
 
-export function HomeContent({ query }: { query: string }) {
+export function HomeContent({ query, filters }: { query: string; filters: CatalogFilters }) {
   const { recentlyViewed } = useStore();
-  const normalized = query.toLowerCase();
-  const results = products.filter((product) =>
-    `${product.name} ${product.brand} ${product.category} ${product.description} ${product.highlights.join(" ")} ${product.badge ?? ""}`
-      .toLowerCase()
-      .includes(normalized),
-  );
+  const results = filterAndSortProducts(products, filters, query);
   const recentProducts = recentlyViewed
     .map((id) => products.find((product) => product.id === id))
     .filter((product): product is (typeof products)[number] => product !== undefined);
@@ -22,8 +19,9 @@ export function HomeContent({ query }: { query: string }) {
     return (
       <main className="mx-auto max-w-7xl px-4 py-8">
         <h1 className="text-3xl font-black tracking-tight">Results for “{query}”</h1>
-        <p className="mb-6 mt-1 text-[#62625b]">{results.length} products found</p>
-        {results.length ? <ProductGrid products={results} /> : <EmptySearch />}
+        <p className="mb-6 mt-1 text-[#62625b]">Refine your search by category, price, rating, and delivery speed.</p>
+        <CatalogControls action="/" filters={filters} query={query} resultCount={results.length} showCategory />
+        {results.length ? <ProductGrid products={results} eagerImages={results.length <= 20} /> : <EmptySearch />}
       </main>
     );
   }

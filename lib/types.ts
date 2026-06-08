@@ -35,6 +35,10 @@ export type CartItem = {
   quantity: number;
 };
 
+export type OrderItem = CartItem & {
+  product: Pick<Product, "id" | "name" | "category" | "brand" | "price" | "emoji" | "imageSrc">;
+};
+
 export type ShippingAddress = {
   fullName: string;
   email: string;
@@ -71,7 +75,7 @@ export type Order = {
   orderId: string;
   createdAt: string;
   estimatedDeliveryDate: string;
-  items: CartItem[];
+  items: OrderItem[];
   total: number;
   shippingAddress: ShippingAddress;
   trackingStatus: TrackingStatus;
