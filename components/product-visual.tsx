@@ -1,3 +1,4 @@
+import Image from "next/image";
 import { Product } from "@/lib/types";
 
 export function ProductVisual({
@@ -15,10 +16,14 @@ export function ProductVisual({
         large ? "aspect-square rounded-[2rem] text-8xl sm:text-9xl" : `${aspect} rounded-2xl text-6xl`
       }`}
     >
-      <div className="absolute inset-5 rounded-full bg-white/35 blur-2xl" />
-      <span className="relative drop-shadow-lg transition-transform duration-300 group-hover:scale-110">
-        {product.emoji}
-      </span>
+      <Image
+        src={product.imageSrc}
+        alt={product.name}
+        fill
+        sizes={large ? "(min-width: 768px) 50vw, 100vw" : "(min-width: 1280px) 20vw, (min-width: 768px) 25vw, 50vw"}
+        className="object-cover transition-transform duration-300 group-hover:scale-105"
+      />
+      <div className="absolute inset-0 bg-black/0 transition group-hover:bg-black/5" />
       <span className="absolute bottom-3 right-3 rounded-full bg-white/90 px-2.5 py-1 text-[10px] font-bold text-[#211922] backdrop-blur">
         Parcel pick
       </span>

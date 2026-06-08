@@ -12,5 +12,5 @@ export default async function CategoryPage({ params }: { params: Promise<{ categ
   const categoryProducts = getCategoryProducts(category);
   if (!categoryProducts.length) notFound();
   const name = categoryProducts[0].category;
-  return <main className="mx-auto max-w-7xl px-4 py-8"><div className="mb-10 rounded-[2rem] bg-[#f6f6f3] p-8 text-center sm:p-12"><p className="text-xs font-bold text-[#62625b]">Browse department</p><h1 className="mt-2 text-4xl font-black tracking-tight sm:text-6xl">{name}</h1><p className="mx-auto mt-3 max-w-lg text-[#62625b]">Five excellent reasons to press “add to cart.” Zero reasons to worry about your budget.</p></div><ProductGrid products={categoryProducts} /></main>;
+  return <main className="mx-auto max-w-7xl px-4 py-8"><div className="mb-10 rounded-[2rem] bg-[#f6f6f3] p-8 text-center sm:p-12"><p className="text-xs font-bold text-[#62625b]">Browse department</p><h1 className="mt-2 text-4xl font-black tracking-tight sm:text-6xl">{name}</h1><p className="mx-auto mt-3 max-w-lg text-[#62625b]">Excellent reasons to press “add to cart.” Zero reasons to worry about your budget.</p></div><ProductGrid products={categoryProducts} /></main>;
 }

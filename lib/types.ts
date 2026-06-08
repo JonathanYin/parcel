@@ -22,6 +22,7 @@ export type Product = {
   description: string;
   emoji: string;
   gradient: string;
+  imageSrc: string;
   badge?: string;
 };
 
@@ -51,6 +52,15 @@ export type TrackingEvent = {
   location: string;
   timestamp: string;
   complete: boolean;
+};
+
+export type Notification = {
+  id: string;
+  title: string;
+  message: string;
+  createdAt: string;
+  read: boolean;
+  orderId?: string;
 };
 
 export type Order = {

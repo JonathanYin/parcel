@@ -4,6 +4,7 @@ import Link from "next/link";
 import { FormEvent, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useStore } from "./store-provider";
+import { NotificationCenter } from "./notification-center";
 
 export function Header() {
   const router = useRouter();
@@ -37,6 +38,7 @@ export function Header() {
           <Link href="/orders" className="hidden rounded-2xl px-3 py-2 text-sm font-bold hover:bg-[#f6f6f3] sm:block">
             Orders
           </Link>
+          <NotificationCenter />
           <Link href="/cart" className="relative rounded-full bg-[#f6f6f3] px-3 py-2 text-lg transition hover:bg-[#e5e5e0]">
             🛒 <span className="hidden text-sm font-bold sm:inline">Cart</span>
             {itemCount > 0 && (

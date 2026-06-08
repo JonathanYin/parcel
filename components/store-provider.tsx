@@ -1,13 +1,15 @@
 "use client";
 
 import { createContext, ReactNode, useCallback, useContext, useEffect, useState } from "react";
-import { CartItem, Order, ShippingAddress, TrackingStatus } from "@/lib/types";
+import { CartItem, Notification, Order, ShippingAddress, TrackingStatus } from "@/lib/types";
 import { calculatePricing } from "@/lib/pricing";
 
 type StoreContextValue = {
   cart: CartItem[];
   orders: Order[];
   recentlyViewed: string[];
+  notifications: Notification[];
+  unreadCount: number;
   hydrated: boolean;
   addToCart: (productId: string, quantity?: number) => void;
   updateQuantity: (productId: string, quantity: number) => void;
@@ -15,12 +17,15 @@ type StoreContextValue = {
   createOrder: (address: ShippingAddress) => Order;
   progressOrder: (orderId: string) => void;
   markViewed: (productId: string) => void;
+  markNotificationsRead: () => void;
 };
 
 const StoreContext = createContext<StoreContextValue | null>(null);
 const CART_KEY = "parcel-cart";
 const ORDERS_KEY = "parcel-orders";
 const RECENT_KEY = "parcel-recent";
+const NOTIFICATIONS_KEY = "parcel-notifications";
+const TRACKING_STEP_MS = 30_000;
 const trackingStatuses: TrackingStatus[] = [
   "Order placed",
   "Preparing shipment",
@@ -50,6 +55,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   const [cart, setCart] = useState<CartItem[]>([]);
   const [orders, setOrders] = useState<Order[]>([]);
   const [recentlyViewed, setRecentlyViewed] = useState<string[]>([]);
+  const [notifications, setNotifications] = useState<Notification[]>([]);
   const [hydrated, setHydrated] = useState(false);
 
   useEffect(() => {
@@ -57,6 +63,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       setCart(readStorage(CART_KEY, []));
       setOrders(readStorage(ORDERS_KEY, []));
       setRecentlyViewed(readStorage(RECENT_KEY, []));
+      setNotifications(readStorage(NOTIFICATIONS_KEY, []));
       setHydrated(true);
     }, 0);
     return () => window.clearTimeout(timer);
@@ -73,6 +80,63 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (hydrated) writeStorage(RECENT_KEY, recentlyViewed);
   }, [recentlyViewed, hydrated]);
+
+  useEffect(() => {
+    if (hydrated) writeStorage(NOTIFICATIONS_KEY, notifications);
+  }, [notifications, hydrated]);
+
+  const addTrackingNotification = useCallback((orderId: string, step: number) => {
+    const status = trackingStatuses[step];
+    const id = `${orderId}-${step}`;
+    setNotifications((current) =>
+      current.some((notification) => notification.id === id)
+        ? current
+        : [
+            {
+              id,
+              title: status,
+              message:
+                step === 4
+                  ? `Order ${orderId} has been delivered.`
+                  : `Order ${orderId} is now ${status.toLowerCase()}.`,
+              createdAt: new Date().toISOString(),
+              read: false,
+              orderId,
+            },
+            ...current,
+          ],
+    );
+  }, []);
+
+  const syncAutomaticTracking = useCallback(() => {
+    const now = Date.now();
+    let changed = false;
+    const updatedOrders = orders.map((order) => {
+        const elapsedStep = Math.min(
+          Math.floor((now - new Date(order.createdAt).getTime()) / TRACKING_STEP_MS),
+          trackingStatuses.length - 1,
+        );
+        if (elapsedStep <= order.trackingStep) return order;
+        changed = true;
+        addTrackingNotification(order.orderId, elapsedStep);
+        return {
+          ...order,
+          trackingStep: elapsedStep,
+          trackingStatus: trackingStatuses[elapsedStep],
+        };
+      });
+    if (changed) setOrders(updatedOrders);
+  }, [addTrackingNotification, orders]);
+
+  useEffect(() => {
+    if (!hydrated) return;
+    const initialTimer = window.setTimeout(syncAutomaticTracking, 0);
+    const timer = window.setInterval(syncAutomaticTracking, 10_000);
+    return () => {
+      window.clearTimeout(initialTimer);
+      window.clearInterval(timer);
+    };
+  }, [hydrated, syncAutomaticTracking]);
 
   const addToCart = (productId: string, quantity = 1) =>
     setCart((current) => {
@@ -111,18 +175,34 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       carrier: "Parcel Express",
     };
     setOrders((current) => [order, ...current]);
+    setNotifications((current) => [
+      {
+        id: `${order.orderId}-0`,
+        title: "Order confirmed",
+        message: `Order ${order.orderId} has been received.`,
+        createdAt: createdAt.toISOString(),
+        read: false,
+        orderId: order.orderId,
+      },
+      ...current,
+    ]);
     setCart([]);
     return order;
   };
 
-  const progressOrder = (orderId: string) =>
+  const progressOrder = (orderId: string) => {
+    const order = orders.find((item) => item.orderId === orderId);
+    if (!order) return;
+    const trackingStep = Math.min(order.trackingStep + 1, trackingStatuses.length - 1);
+    addTrackingNotification(order.orderId, trackingStep);
     setOrders((current) =>
-      current.map((order) => {
-        if (order.orderId !== orderId) return order;
-        const trackingStep = Math.min(order.trackingStep + 1, trackingStatuses.length - 1);
-        return { ...order, trackingStep, trackingStatus: trackingStatuses[trackingStep] };
-      }),
+      current.map((item) =>
+        item.orderId === orderId
+          ? { ...item, trackingStep, trackingStatus: trackingStatuses[trackingStep] }
+          : item,
+      ),
     );
+  };
 
   const markViewed = useCallback(
     (productId: string) =>
@@ -132,12 +212,17 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     [],
   );
 
+  const markNotificationsRead = () =>
+    setNotifications((current) => current.map((notification) => ({ ...notification, read: true })));
+
   return (
     <StoreContext.Provider
       value={{
         cart,
         orders,
         recentlyViewed,
+        notifications,
+        unreadCount: notifications.filter((notification) => !notification.read).length,
         hydrated,
         addToCart,
         updateQuantity,
@@ -145,6 +230,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         createOrder,
         progressOrder,
         markViewed,
+        markNotificationsRead,
       }}
     >
       {children}
